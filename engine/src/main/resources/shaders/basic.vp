@@ -1,0 +1,23 @@
+#version 330
+
+layout(location = 0) in vec4 position;
+layout(location = 1) in vec4 colour;
+layout(location = 2) in vec3 normal;
+
+layout(std140) uniform GlobalMatrices
+{
+    mat4 cameraToClipMatrix;
+};
+
+uniform mat4 modelToCameraMatrix;
+uniform mat3 normalModelToCameraMatrix;
+
+out vec4 interpolatedColour;
+out vec3 interpolatedNormal;
+
+void main() {
+    gl_Position = cameraToClipMatrix * modelToCameraMatrix * position;
+    interpolatedNormal = normalModelToCameraMatrix * normal;
+    interpolatedColour = colour;
+}
+
