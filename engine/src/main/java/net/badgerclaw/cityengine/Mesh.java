@@ -172,6 +172,7 @@ public class Mesh {
     }
 
     public void render(GL3 gl3) {
+        gl3.glBindVertexArray(vertexArrayObject[0]);
         gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
     }
 }

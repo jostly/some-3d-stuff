@@ -2,7 +2,6 @@ package net.badgerclaw.cityengine;
 
 import com.jogamp.newt.event.*;
 import com.jogamp.newt.opengl.GLWindow;
-import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.opengl.util.glsl.ShaderCode;
 import com.jogamp.opengl.util.glsl.ShaderProgram;
 import net.badgerclaw.cityengine.component.MeshComponent;
@@ -17,137 +16,14 @@ import javax.media.opengl.GL3;
 import javax.media.opengl.GLAutoDrawable;
 import javax.media.opengl.GLEventListener;
 import java.awt.*;
-import java.nio.IntBuffer;
 
 public class SimpleScene implements GLEventListener, KeyListener, MouseListener, WindowListener, RenderContext {
 
     private ShaderProgram program = new ShaderProgram();
 
     private final long startingTime = System.currentTimeMillis();
+    private float lastTime = 0;
 
-    private float[] GREEN_COLOR = new float[]{0.0f, 1.0f, 0.0f, 1.0f};
-    private float[] BLUE_COLOR = new float[]{0.0f, 0.0f, 1.0f, 1.0f};
-    private float[] RED_COLOR = new float[]{1.0f, 0.0f, 0.0f, 1.0f};
-    //
-    private float[] YELLOW_COLOR = new float[]{1.0f, 1.0f, 0.0f, 1.0f};
-    private float[] CYAN_COLOR = new float[]{0.0f, 1.0f, 1.0f, 1.0f};
-    private float[] MAGENTA_COLOR = new float[]{1.0f, 0.0f, 1.0f, 1.0f};
-    private float[] vertexData = new float[]{
-            //Front
-            +1.0f, +1.0f, +1.0f,
-            +1.0f, -1.0f, +1.0f,
-            -1.0f, -1.0f, +1.0f,
-            -1.0f, +1.0f, +1.0f,
-            //Top
-            +1.0f, +1.0f, +1.0f,
-            -1.0f, +1.0f, +1.0f,
-            -1.0f, +1.0f, -1.0f,
-            +1.0f, +1.0f, -1.0f,
-            //Left
-            +1.0f, +1.0f, +1.0f,
-            +1.0f, +1.0f, -1.0f,
-            +1.0f, -1.0f, -1.0f,
-            +1.0f, -1.0f, +1.0f,
-            //Back
-            +1.0f, +1.0f, -1.0f,
-            -1.0f, +1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-            +1.0f, -1.0f, -1.0f,
-            //Bottom
-            +1.0f, -1.0f, +1.0f,
-            +1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, -1.0f, +1.0f,
-            //Right
-            -1.0f, +1.0f, +1.0f,
-            -1.0f, -1.0f, +1.0f,
-            -1.0f, -1.0f, -1.0f,
-            -1.0f, +1.0f, -1.0f,
-
-            // Normals
-            0f, 0f, 1f,
-            0f, 0f, 1f,
-            0f, 0f, 1f,
-            0f, 0f, 1f,
-
-            0f, 1f, 0f,
-            0f, 1f, 0f,
-            0f, 1f, 0f,
-            0f, 1f, 0f,
-
-            1f, 0f, 0f,
-            1f, 0f, 0f,
-            1f, 0f, 0f,
-            1f, 0f, 0f,
-
-            0f, 0f, -1f,
-            0f, 0f, -1f,
-            0f, 0f, -1f,
-            0f, 0f, -1f,
-
-            0f, -1f, 0f,
-            0f, -1f, 0f,
-            0f, -1f, 0f,
-            0f, -1f, 0f,
-
-            -1f, 0f, 0f,
-            -1f, 0f, 0f,
-            -1f, 0f, 0f,
-            -1f, 0f, 0f,
-            //
-            GREEN_COLOR[0], GREEN_COLOR[1], GREEN_COLOR[2], GREEN_COLOR[3],
-            GREEN_COLOR[0], GREEN_COLOR[1], GREEN_COLOR[2], GREEN_COLOR[3],
-            GREEN_COLOR[0], GREEN_COLOR[1], GREEN_COLOR[2], GREEN_COLOR[3],
-            GREEN_COLOR[0], GREEN_COLOR[1], GREEN_COLOR[2], GREEN_COLOR[3],
-            //
-            BLUE_COLOR[0], BLUE_COLOR[1], BLUE_COLOR[2], BLUE_COLOR[3],
-            BLUE_COLOR[0], BLUE_COLOR[1], BLUE_COLOR[2], BLUE_COLOR[3],
-            BLUE_COLOR[0], BLUE_COLOR[1], BLUE_COLOR[2], BLUE_COLOR[3],
-            BLUE_COLOR[0], BLUE_COLOR[1], BLUE_COLOR[2], BLUE_COLOR[3],
-            //
-            RED_COLOR[0], RED_COLOR[1], RED_COLOR[2], RED_COLOR[3],
-            RED_COLOR[0], RED_COLOR[1], RED_COLOR[2], RED_COLOR[3],
-            RED_COLOR[0], RED_COLOR[1], RED_COLOR[2], RED_COLOR[3],
-            RED_COLOR[0], RED_COLOR[1], RED_COLOR[2], RED_COLOR[3],
-            //
-            YELLOW_COLOR[0], YELLOW_COLOR[1], YELLOW_COLOR[2], YELLOW_COLOR[3],
-            YELLOW_COLOR[0], YELLOW_COLOR[1], YELLOW_COLOR[2], YELLOW_COLOR[3],
-            YELLOW_COLOR[0], YELLOW_COLOR[1], YELLOW_COLOR[2], YELLOW_COLOR[3],
-            YELLOW_COLOR[0], YELLOW_COLOR[1], YELLOW_COLOR[2], YELLOW_COLOR[3],
-            //
-            CYAN_COLOR[0], CYAN_COLOR[1], CYAN_COLOR[2], CYAN_COLOR[3],
-            CYAN_COLOR[0], CYAN_COLOR[1], CYAN_COLOR[2], CYAN_COLOR[3],
-            CYAN_COLOR[0], CYAN_COLOR[1], CYAN_COLOR[2], CYAN_COLOR[3],
-            CYAN_COLOR[0], CYAN_COLOR[1], CYAN_COLOR[2], CYAN_COLOR[3],
-            //
-            MAGENTA_COLOR[0], MAGENTA_COLOR[1], MAGENTA_COLOR[2], MAGENTA_COLOR[3],
-            MAGENTA_COLOR[0], MAGENTA_COLOR[1], MAGENTA_COLOR[2], MAGENTA_COLOR[3],
-            MAGENTA_COLOR[0], MAGENTA_COLOR[1], MAGENTA_COLOR[2], MAGENTA_COLOR[3],
-            MAGENTA_COLOR[0], MAGENTA_COLOR[1], MAGENTA_COLOR[2], MAGENTA_COLOR[3]};
-
-    int numberOfVertices = 24;
-
-    private int[] indexData = new int[]{
-            0, 1, 2,
-            2, 3, 0,
-            //
-            4, 5, 6,
-            6, 7, 4,
-            //
-            8, 9, 10,
-            10, 11, 8,
-            //
-            12, 13, 14,
-            14, 15, 12,
-            //
-            16, 17, 18,
-            18, 19, 16,
-            //
-            20, 21, 22,
-            22, 23, 20};
-
-    private int[] bufferObject = new int[2];
-    private int[] vertexArrayObject = new int[1];
     private int[] uniformBufferObject = new int[1];
 
     private float aspectRatio = 1f;
@@ -225,8 +101,6 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
 
         buildShaders(gl3);
 
-        initializeVertexArray(gl3);
-
         gl3.glEnable(GL3.GL_CULL_FACE);
         gl3.glCullFace(GL3.GL_BACK);
         gl3.glFrontFace(GL3.GL_CW);
@@ -237,39 +111,6 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
         gl3.glDepthRangef(0.0f, 1.0f);
 
         root.init(gl3);
-    }
-
-    private void initializeVertexArray(GL3 gl3) {
-
-        gl3.glGenVertexArrays(1, IntBuffer.wrap(vertexArrayObject));
-        gl3.glBindVertexArray(vertexArrayObject[0]);
-
-        gl3.glGenBuffers(bufferObject.length, IntBuffer.wrap(bufferObject));
-
-        gl3.glBindBuffer(GL3.GL_ARRAY_BUFFER, bufferObject[0]);
-        {
-            gl3.glBufferData(GL3.GL_ARRAY_BUFFER, vertexData.length * 4, GLBuffers.newDirectFloatBuffer(vertexData), GL3.GL_STATIC_DRAW);
-
-            gl3.glEnableVertexAttribArray(0);
-            gl3.glVertexAttribPointer(0, 3, GL3.GL_FLOAT, false, 0, 0);
-
-            int normalDataOffset = numberOfVertices * 3 * 4;
-            gl3.glEnableVertexAttribArray(2);
-            gl3.glVertexAttribPointer(2, 3, GL3.GL_FLOAT, false, 0, normalDataOffset);
-
-            int colorDataOffset = numberOfVertices * 3 * 4 + normalDataOffset;
-            gl3.glEnableVertexAttribArray(1);
-            gl3.glVertexAttribPointer(1, 4, GL3.GL_FLOAT, false, 0, colorDataOffset);
-        }
-
-        gl3.glBindBuffer(GL3.GL_ELEMENT_ARRAY_BUFFER, bufferObject[1]);
-        {
-            gl3.glBufferData(GL3.GL_ELEMENT_ARRAY_BUFFER, indexData.length * 4, GLBuffers.newDirectIntBuffer(indexData), GL3.GL_STATIC_DRAW);
-        }
-
-        gl3.glBindVertexArray(0);
-        gl3.glBindBuffer(GL3.GL_ARRAY_BUFFER, 0);
-        gl3.glBindBuffer(GL3.GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     private void buildShaders(GL3 gl3) {
@@ -299,8 +140,10 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
     @Override
     public void display(GLAutoDrawable drawable) {
         float time = (System.currentTimeMillis() - startingTime) / 1000f;
+        float delta = lastTime == 0 ? 0 : (time - lastTime);
+        lastTime = time;
 
-        float speed = time * 0.03f;
+        float speed = delta * 5f;
 
         if (moveForward) {
             cameraPosition.add(cameraForward.clone().scalar(-speed));
@@ -315,7 +158,7 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
             cameraPosition.add(cameraRight.clone().scalar(speed));
         }
 
-        float rotationSpeed = time * 0.001f;
+        float rotationSpeed = delta * 0.5f;
 
         synchronized (mouseSyncLock) {
             Mat4 rotation = Mat4.rotation(0, 1, 0, -mouseDeltaX * rotationSpeed);
@@ -359,44 +202,16 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
 
         transformationStack = worldToCameraInverse;
 
+        blockContainer.transformationMatrix.setIdentity()
+                .mul(Mat4.rotation(new Vec3(1f, 0.0f, 1f).normalize(), time * 0.7f));
+
+        rod.transformationMatrix.setIdentity()
+                .mul(Mat4.translation(0f, 0f, 1.2f))
+                .mul(Mat4.scaling(0.25f, 0.25f, 1f))
+                .mul(Mat4.rotation(new Vec3(0f, 0f, 1f), time * 4.2f));
+
         program.useProgram(gl3, true);
         {
-
-            gl3.glBindVertexArray(vertexArrayObject[0]);
-
-            /*
-            Mat4 ground = worldToCameraInverse.clone()
-                    .mul(Mat4.translation(0, -4f, 0f))
-                    .mul(Mat4.scaling(100f, 0.1f, 100f));
-            setUniform(gl3, "modelToCameraMatrix", ground);
-            setUniform(gl3, "normalModelToCameraMatrix", worldToCamera.clone().mul(ground).toMat3());
-            gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
-            */
-
-            blockContainer.transformationMatrix.setIdentity()
-                    .mul(Mat4.rotation(new Vec3(1f, 0.0f, 1f).normalize(), time * 0.7f));
-
-
-            /*
-            Mat4 m1 = worldToCameraInverse.clone()
-                    .mul(Mat4.rotation(new Vec3(1f, 0.0f, 1f).normalize(), time * 0.7f))
-                    .push()
-                    .mul(Mat4.scaling(1f, 1f, 0.2f));
-            setUniform(gl3, "modelToCameraMatrix", m1);
-            setUniform(gl3, "normalModelToCameraMatrix", worldToCamera.clone().mul(m1).toMat3());
-            gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
-            */
-
-            rod.transformationMatrix.setIdentity()
-                    .mul(Mat4.translation(0f, 0f, 1.2f))
-                    .mul(Mat4.scaling(0.25f, 0.25f, 1f))
-                    .mul(Mat4.rotation(new Vec3(0f, 0f, 1f), time * 4.2f));
-
-            /*
-            setUniform(gl3, "modelToCameraMatrix", m1);
-            setUniform(gl3, "normalModelToCameraMatrix", worldToCamera.clone().mul(m1).toMat3());
-            gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
-            */
             root.render(this);
         }
         program.useProgram(gl3, false);
