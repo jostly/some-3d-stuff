@@ -1,8 +1,11 @@
+package net.badgerclaw.cityengine;
+
 import com.jogamp.newt.event.*;
 import com.jogamp.newt.opengl.GLWindow;
 import com.jogamp.opengl.util.GLBuffers;
 import com.jogamp.opengl.util.glsl.ShaderCode;
 import com.jogamp.opengl.util.glsl.ShaderProgram;
+import net.badgerclaw.cityengine.component.MeshComponent;
 import net.badgerclaw.cityengine.math.AbstractMatrix;
 import net.badgerclaw.cityengine.math.Mat4;
 import net.badgerclaw.cityengine.math.Vec2;
@@ -16,7 +19,7 @@ import javax.media.opengl.GLEventListener;
 import java.awt.*;
 import java.nio.IntBuffer;
 
-public class SimpleScene implements GLEventListener, KeyListener, MouseListener, WindowListener {
+public class SimpleScene implements GLEventListener, KeyListener, MouseListener, WindowListener, RenderContext {
 
     private ShaderProgram program = new ShaderProgram();
 
@@ -162,10 +165,20 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
     private float mouseDeltaX, mouseDeltaY;
     private Object mouseSyncLock = new Object();
 
+    private Mat4 worldToCamera = new Mat4();
+    private Mat4 transformationStack;
+
     private int centerX, centerY;
     private int top, left;
 
     private Robot robot;
+
+    private GL3 currentFrameGL3;
+
+    private Entity root;
+    private Entity ground;
+    private Entity blockContainer;
+    private Entity rod;
 
     public SimpleScene(GLWindow window) {
         try {
@@ -174,6 +187,30 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
             e.printStackTrace();
         }
         recalcCenter(window);
+
+        Mesh mesh = new Mesh();
+
+        root = new Entity();
+
+        ground = new Entity(new MeshComponent(mesh));
+        ground.transformationMatrix
+                .mul(Mat4.translation(0, -4f, 0f))
+                .mul(Mat4.scaling(100f, 0.1f, 100f));
+
+        blockContainer = new Entity();
+
+        Entity block = new Entity(new MeshComponent(mesh));
+        block.transformationMatrix
+                .mul(Mat4.scaling(1f, 1f, 0.2f));
+
+        blockContainer.addChild(block);
+
+        rod = new Entity(new MeshComponent(mesh));
+
+        blockContainer.addChild(rod);
+
+        root.addChild(blockContainer);
+        root.addChild(ground);
     }
 
     @Override
@@ -199,6 +236,7 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
         gl3.glDepthFunc(GL3.GL_LEQUAL);
         gl3.glDepthRangef(0.0f, 1.0f);
 
+        root.init(gl3);
     }
 
     private void initializeVertexArray(GL3 gl3) {
@@ -301,6 +339,7 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
         }
 
         GL3 gl3 = drawable.getGL().getGL3();
+        currentFrameGL3 = gl3;
 
         gl3.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         gl3.glClear(GL3.GL_COLOR_BUFFER_BIT | GL3.GL_DEPTH_BUFFER_BIT);
@@ -310,7 +349,7 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
         gl3.glBufferSubData(GL3.GL_UNIFORM_BUFFER, 0, 16 * 4, cameraToClipMatrix.toBuffer());
         gl3.glBindBuffer(GL3.GL_UNIFORM_BUFFER, 0);
 
-        Mat4 worldToCamera = Mat4.identity();
+        worldToCamera.setIdentity();
         worldToCamera.setColumn(0, cameraRight);
         worldToCamera.setColumn(1, cameraUp);
         worldToCamera.setColumn(2, cameraForward);
@@ -318,18 +357,27 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
 
         Mat4 worldToCameraInverse = worldToCamera.clone().invert();
 
+        transformationStack = worldToCameraInverse;
+
         program.useProgram(gl3, true);
         {
 
             gl3.glBindVertexArray(vertexArrayObject[0]);
 
+            /*
             Mat4 ground = worldToCameraInverse.clone()
                     .mul(Mat4.translation(0, -4f, 0f))
                     .mul(Mat4.scaling(100f, 0.1f, 100f));
             setUniform(gl3, "modelToCameraMatrix", ground);
             setUniform(gl3, "normalModelToCameraMatrix", worldToCamera.clone().mul(ground).toMat3());
             gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
+            */
 
+            blockContainer.transformationMatrix.setIdentity()
+                    .mul(Mat4.rotation(new Vec3(1f, 0.0f, 1f).normalize(), time * 0.7f));
+
+
+            /*
             Mat4 m1 = worldToCameraInverse.clone()
                     .mul(Mat4.rotation(new Vec3(1f, 0.0f, 1f).normalize(), time * 0.7f))
                     .push()
@@ -337,14 +385,19 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
             setUniform(gl3, "modelToCameraMatrix", m1);
             setUniform(gl3, "normalModelToCameraMatrix", worldToCamera.clone().mul(m1).toMat3());
             gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
+            */
 
-            m1 = m1.pop()
+            rod.transformationMatrix.setIdentity()
                     .mul(Mat4.translation(0f, 0f, 1.2f))
                     .mul(Mat4.scaling(0.25f, 0.25f, 1f))
                     .mul(Mat4.rotation(new Vec3(0f, 0f, 1f), time * 4.2f));
+
+            /*
             setUniform(gl3, "modelToCameraMatrix", m1);
             setUniform(gl3, "normalModelToCameraMatrix", worldToCamera.clone().mul(m1).toMat3());
             gl3.glDrawElements(GL3.GL_TRIANGLES, indexData.length, GL3.GL_UNSIGNED_INT, 0);
+            */
+            root.render(this);
         }
         program.useProgram(gl3, false);
     }
@@ -398,6 +451,27 @@ public class SimpleScene implements GLEventListener, KeyListener, MouseListener,
         aspectRatio = (float) width / (float) height;
         GL3 gl3 = drawable.getGL().getGL3();
         gl3.glViewport(x, y, width, height);
+    }
+
+    @Override
+    public Mat4 getCurrentModelTransformation() {
+        return transformationStack;
+    }
+
+    @Override
+    public void setCurrentModelTransformation(Mat4 modelTransformation) {
+        transformationStack = modelTransformation;
+    }
+
+    @Override
+    public void uploadMatrices() {
+        setUniform(currentFrameGL3, "modelToCameraMatrix", transformationStack);
+        setUniform(currentFrameGL3, "normalModelToCameraMatrix", worldToCamera.clone().mul(transformationStack).toMat3());
+    }
+
+    @Override
+    public void renderMesh(Mesh mesh) {
+        mesh.render(currentFrameGL3);
     }
 
     @Override
